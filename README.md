@@ -10,3 +10,6 @@ Options:
   --http              public http server
   -p, --port          port to listen on
 ```
+```
+python3 -m pip install pyngrok
+```

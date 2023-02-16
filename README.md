@@ -1,6 +1,6 @@
 # pwn_www
 
-open public http and tcp servers on the go ;)
+open public http and tcp tunnels on the go ;)
 
 ```
 # pwn_www.py --help

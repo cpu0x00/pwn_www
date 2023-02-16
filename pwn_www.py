@@ -2,33 +2,52 @@
 
 import subprocess
 from pyngrok import ngrok
-import click
+import threading
+import argparse
 import socket
 
-@click.command()
-@click.option('--tcp', is_flag=True, help='public tcp server')
-@click.option('--http', is_flag=True, help='public http server')
-@click.option('--port','-p', type=int, help='port to listen on')
-def www(tcp,http,port):
+parser = argparse.ArgumentParser(epilog='simple script to recieve connections from the public internet')
+parser.add_argument('protocol', choices=["http","tcp"], help="open http/tcp tunnel")
+parser.add_argument('--port','-p',type=int, help="port to use")
+parser.add_argument('--nc', action="store_true", help='open a nc listener with the tcp tunnel')
+args = parser.parse_args()
+
+port = args.port
+
+
+def open_nc():
+	import os
+	os.system(f"ncat -lnvp {port}")
+
+
+def public_tcp():
+	ptcpserver = ngrok.connect(port, 'tcp')
+	print(f'opened public tcp {ptcpserver}')
+	alive_process = ngrok.get_ngrok_process()
+	alive_process.proc.wait()
+
+
+
+def www():
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	s.connect(("8.8.8.8", 80))
 	local_ip = s.getsockname()[0]
 
-	if tcp:
+	if args.protocol == "tcp":
 		try:
 
-			ptcpserver = ngrok.connect(port, 'tcp')
-			print(f'[*] opened public tcp {ptcpserver}')
-			print(f"[+] if you didn't already you have to open a listener locally on port {port} ")
-			alive_process = ngrok.get_ngrok_process()
-			alive_process.proc.wait()
+			tp = threading.Thread(target=public_tcp)
+			tp.start()
+
+			if args.nc:
+				tnc = threading.Thread(target=open_nc)
+				tnc.start()
 		
 		except KeyboardInterrupt:
 			print('\n[-] shutting down')
 			ngrok.kill()  
-		
 
-	if http:
+	if args.protocol == "http":
 		try:
 
 			phttpserver = ngrok.connect(port, 'http')
